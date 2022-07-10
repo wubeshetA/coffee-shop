@@ -1,11 +1,12 @@
 import json
-from flask import abort, request, _request_ctx_stack
+import sys
+from flask import abort, request
 from functools import wraps
 from jose import jwt
 from urllib.request import urlopen
 
 
-AUTH0_DOMAIN = 'wube-fsnd.auth0.com'
+AUTH0_DOMAIN = 'wube-fsnd.us.auth0.com'
 ALGORITHMS = ['RS256']
 API_AUDIENCE = 'coffeeshopapi'
 
@@ -18,6 +19,7 @@ class AuthError(Exception):
     def __init__(self, error, status_code):
         self.error = error
         self.status_code = status_code
+        
 
 
 ## Auth Header
@@ -63,7 +65,7 @@ def get_token_auth_header():
     return token
 
 '''
-@TODO implement check_permissions(permission, payload) method
+implement check_permissions(permission, payload) method
     @INPUTS
         permission: string permission (i.e. 'post:drink')
         payload: decoded jwt payload
@@ -81,7 +83,7 @@ def check_permissions(permission, payload):
     return True
 
 '''
-@TODO implement verify_decode_jwt(token) method
+implement verify_decode_jwt(token) method
     @INPUTS
         token: a json web token (string)
 
@@ -98,13 +100,16 @@ def verify_decode_jwt(token):
     jwks = json.loads(jsonurl.read())
     unverified_header = jwt.get_unverified_header(token)
     rsa_key = {}
+    print('I reached here')
     if 'kid' not in unverified_header:
+        print('inside error message1')
         raise AuthError({
             'code': 'invalid_header',
             'description': 'Authorization malformed.'
         }, 401)
 
     for key in jwks['keys']:
+        # print(key)
         if key['kid'] == unverified_header['kid']:
             rsa_key = {
                 'kty': key['kty'],
@@ -113,8 +118,11 @@ def verify_decode_jwt(token):
                 'n': key['n'],
                 'e': key['e']
             }
+    
     if rsa_key:
+        
         try:
+           
             payload = jwt.decode(
                 token,
                 rsa_key,
@@ -122,7 +130,7 @@ def verify_decode_jwt(token):
                 audience=API_AUDIENCE,
                 issuer='https://' + AUTH0_DOMAIN + '/'
             )
-
+            print('===============this is payload============')
             return payload
 
         except jwt.ExpiredSignatureError:
@@ -147,7 +155,7 @@ def verify_decode_jwt(token):
             }, 400)
 
 '''
-@TODO implement @requires_auth(permission) decorator method
+implement @requires_auth(permission) decorator method
     @INPUTS
         permission: string permission (i.e. 'post:drink')
 
@@ -162,10 +170,15 @@ def requires_auth(permission=''):
         def wrapper(*args, **kwargs):
             token = get_token_auth_header()
             try:
+                # print(token)
                 payload = verify_decode_jwt(token)
+                
             except:
-                print("the problem is here")
+                print("here is the error")
+                print(sys.exc_info())
                 abort(401)
+                
+                
             check_permissions(permission, payload)
             return f(payload, *args, **kwargs)
         return wrapper
